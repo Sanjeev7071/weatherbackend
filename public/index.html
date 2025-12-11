@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neo Sensor Dashboard</title>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Poppins", sans-serif;
+    background: radial-gradient(circle at top, #0d1b2a, #050914);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+  }
+
+  .card {
+    width: 360px;
+    padding: 30px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 25px rgba(0,255,180,0.15);
+    backdrop-filter: blur(12px);
+    text-align: center;
+    transition: .3s;
+  }
+
+  .card:hover {
+    box-shadow: 0 0 40px rgba(0,255,180,0.4);
+  }
+
+  h1 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+
+  #time {
+    font-size: 13px;
+    opacity: .75;
+    margin-bottom: 20px;
+  }
+
+  .value {
+    margin: 15px 0;
+    font-size: 34px;
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(255,255,255,0.4);
+  }
+
+  .temp { color: #ff5f5f; }
+  .hum  { color: #48cfff; }
+
+  /* Glow animations */
+  @keyframes pulse {
+    0%   { text-shadow: 0 0 8px currentColor; }
+    100% { text-shadow: 0 0 18px currentColor; }
+  }
+
+  .temp, .hum {
+    animation: pulse 1.4s ease-in-out alternate infinite;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>📡 Live Environment Status</h1>
+  <div id="time">Waiting...</div>
+
+  <div class="value temp">🌡️ -- °C</div>
+  <div class="value hum">💧 -- %</div>
+</div>
+
+<script>
+  function smoothUpdate(el, value, unit) {
+    const oldValue = parseFloat(el.dataset.value || 0);
+    const newValue = parseFloat(value);
+
+    // animation steps
+    let step = 0;
+    const steps = 12;
+
+    const interval = setInterval(() => {
+      step++;
+      const v = oldValue + (newValue - oldValue) * (step / steps);
+      el.innerHTML = `${el.dataset.icon} ${v.toFixed(1)} ${unit}`;
+      if (step >= steps) clearInterval(interval);
+    }, 35);
+
+    el.dataset.value = newValue;
+  }
+
+  function updateUI(temp, hum) {
+    smoothUpdate(document.querySelector(".temp"), temp, "°C");
+    smoothUpdate(document.querySelector(".hum"), hum, "%");
+
+    document.getElementById("time").innerHTML = `🕒 ${new Date().toLocaleTimeString()}`;
+  }
+
+  // Fetch initial data
+  fetch("/api/latest")
+    .then(r => r.json())
+    .then(d => updateUI(d.temperature, d.humidity))
+    .catch(() => console.log("No initial data."));
+
+  // WebSocket with safe reconnect
+  function connectWS() {
+    const proto = location.protocol === "https:" ? "wss://" : "ws://";
+    const ws = new WebSocket(proto + window.location.host);
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      updateUI(data.temperature, data.humidity);
+    };
+
+    ws.onclose = () => {
+      console.log("WS disconnected, reconnecting...");
+      setTimeout(connectWS, 1500);
+    };
+  }
+
+  connectWS();
+</script>
+
+</body>
+</html>
