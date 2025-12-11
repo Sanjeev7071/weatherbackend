@@ -1,97 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Live Sensor Dashboard</title>
-<style>
-  body {
-    margin: 0;
-    font-family: "Poppins", sans-serif;
-    background: linear-gradient(135deg, #1a2a3a, #0a0f24);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    color: #fff;
-  }
+const fetch = require('node-fetch');
 
-  .card {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    padding: 25px 30px;
-    text-align: center;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 0 20px rgba(0,200,255,0.2);
-    transition: 0.3s;
-    width: 300px;
-  }
+async function getEnvironmentData() {
+    try {
+        const response = await fetch('https://api.example.com/environment');
+        const data = await response.json();
 
-  .card:hover {
-    box-shadow: 0 0 35px rgba(0,200,255,0.4);
-  }
+        const temperature = data.temperature ?? 'N/A';
+        const humidity = data.humidity ?? 'N/A';
 
-  h1 {
-    font-size: 20px;
-    margin-bottom: 10px;
-  }
+        console.clear();
+        console.log(`📡 Live Environment Status`);
+        console.log(`🕒 ${new Date().toLocaleTimeString()}`);
+        console.log(`🌡 Temperature: ${temperature} °C`);
+        console.log(`💧 Humidity: ${humidity} %`);
+    } catch (error) {
+        console.error('Error fetching environment data:', error);
+    }
+}
 
-  #time {
-    font-size: 14px;
-    margin-bottom: 20px;
-    opacity: 0.8;
-  }
-
-  .value {
-    margin: 12px 0;
-    font-size: 28px;
-    font-weight: 600;
-  }
-
-  .temp { color: #ff7f7f; }
-  .hum { color: #6cd3ff; }
-
-  /* subtle glow animation */
-  @keyframes glow {
-    0% { text-shadow: 0 0 4px currentColor; }
-    100% { text-shadow: 0 0 12px currentColor; }
-  }
-
-  .temp, .hum { animation: glow 1.5s ease-in-out infinite alternate; }
-</style>
-</head>
-<body>
-
-<div class="card">
-  <h1>📊 Sensor Status</h1>
-  <div id="time">--:--:--</div>
-  <div class="value temp" data-icon="🌡️">-- °C</div>
-  <div class="value hum" data-icon="💧">-- %</div>
-</div>
-
-<script>
-  function updateUI(temp, hum) {
-    const tempEl = document.querySelector(".temp");
-    const humEl = document.querySelector(".hum");
-
-    tempEl.textContent = `${tempEl.dataset.icon} ${temp} °C`;
-    humEl.textContent = `${humEl.dataset.icon} ${hum} %`;
-    document.getElementById("time").textContent = `🕒 ${new Date().toLocaleTimeString()}`;
-  }
-
-  // Initial fetch
-  fetch("/api/latest")
-    .then(r => r.json())
-    .then(d => updateUI(d.temperature, d.humidity))
-    .catch(() => console.log("No initial data"));
-
-  // Live WebSocket updates
-  const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + window.location.host);
-  ws.onmessage = event => {
-    const data = JSON.parse(event.data);
-    updateUI(data.temperature, data.humidity);
-  };
-</script>
-
-</body>
-</html>
+setInterval(getEnvironmentData, 5000);
+getEnvironmentData();
