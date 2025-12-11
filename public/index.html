@@ -59,21 +59,21 @@
   const timeEl = document.getElementById('time');
 
   function update(t, h){
-    tempEl.textContent = `🌡️ ${t ?? '--'} °C`;
-    humEl.textContent = `💧 ${h ?? '--'} %`;
+    tempEl.textContent = `🌡️ ${t !== undefined ? t : '--'} °C`;
+    humEl.textContent = `💧 ${h !== undefined ? h : '--'} %`;
   }
 
   // Initial fetch
   fetch('/api/latest')
     .then(r => r.json())
-    .then(d => update(d.temperature, d.humidity))
+    .then(d => update(d.temperature ?? '--', d.humidity ?? '--'))
     .catch(() => console.log("No initial data"));
 
   // WebSocket live updates
   const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + window.location.host);
   ws.onmessage = e => {
     const d = JSON.parse(e.data);
-    update(d.temperature, d.humidity);
+    update(d.temperature ?? '--', d.humidity ?? '--');
   };
   ws.onclose = () => console.log("WebSocket disconnected");
 
