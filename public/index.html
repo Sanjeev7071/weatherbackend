@@ -4,40 +4,83 @@
 <meta charset="UTF-8">
 <title>Live Sensor</title>
 <style>
-body {margin:0; font-family:Poppins,sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; background:linear-gradient(135deg,#0a0f24,#07182d); color:#fff;}
-.card {background:rgba(255,255,255,0.1); border-radius:15px; padding:30px; text-align:center; backdrop-filter:blur(10px);}
-.value {font-size:28px; margin:15px 0;}
-.temp {color:#ff6b6b; animation:glowTemp 1.5s infinite alternate;}
-.hum {color:#4dd2ff; animation:glowHum 1.5s infinite alternate;}
-@keyframes glowTemp {0%{text-shadow:0 0 5px #ff6b6b;}100%{text-shadow:0 0 12px #ff6b6b;}}
-@keyframes glowHum {0%{text-shadow:0 0 5px #4dd2ff;}100%{text-shadow:0 0 12px #4dd2ff;}}
-#time {opacity:0.8;}
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #0b1a2a;
+    color: #fff;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.05);
+    padding: 30px 40px;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 250px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  }
+
+  h1 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .value {
+    font-size: 30px;
+    margin: 15px 0;
+  }
+
+  .temp { color: #ff6b6b; }
+  .hum { color: #4dd2ff; }
+
+  #time { margin-top: 10px; opacity: 0.8; font-size: 16px; }
+
+  @media(max-width: 400px){
+    .card { padding: 20px; }
+    .value { font-size: 24px; }
+  }
 </style>
 </head>
 <body>
-<div class="card">
-<h1>📡 Live Sensor</h1>
-<div id="time">--:--:--</div>
-<div class="value temp">🌡️ -- °C</div>
-<div class="value hum">💧 -- %</div>
-</div>
+  <div class="card">
+    <h1>📡 Live Sensor</h1>
+    <div id="time">--:--:--</div>
+    <div class="value temp">🌡️ -- °C</div>
+    <div class="value hum">💧 -- %</div>
+  </div>
 
 <script>
-function update(t,h){
-  document.querySelector(".temp").innerHTML=`🌡️ ${t} °C`;
-  document.querySelector(".hum").innerHTML=`💧 ${h} %`;
-  document.getElementById("time").innerText=new Date().toLocaleTimeString();
-}
+  const tempEl = document.querySelector('.temp');
+  const humEl = document.querySelector('.hum');
+  const timeEl = document.getElementById('time');
 
-// Initial fetch
-fetch("/api/latest").then(r=>r.json()).then(d=>update(d.temperature,d.humidity)).catch(()=>console.log("No data"));
+  function update(t, h){
+    tempEl.textContent = `🌡️ ${t ?? '--'} °C`;
+    humEl.textContent = `💧 ${h ?? '--'} %`;
+  }
 
-// WebSocket live updates
-const ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+window.location.host);
-ws.onmessage=e=>{const d=JSON.parse(e.data); update(d.temperature,d.humidity);}
+  // Initial fetch
+  fetch('/api/latest')
+    .then(r => r.json())
+    .then(d => update(d.temperature, d.humidity))
+    .catch(() => console.log("No initial data"));
 
-// Live clock
-setInterval(()=>document.getElementById("time").innerText=new Date().toLocaleTimeString(),1000);
+  // WebSocket live updates
+  const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + window.location.host);
+  ws.onmessage = e => {
+    const d = JSON.parse(e.data);
+    update(d.temperature, d.humidity);
+  };
+  ws.onclose = () => console.log("WebSocket disconnected");
+
+  // Live clock
+  setInterval(() => {
+    timeEl.textContent = new Date().toLocaleTimeString();
+  }, 1000);
 </script>
 </body>
 </html>
